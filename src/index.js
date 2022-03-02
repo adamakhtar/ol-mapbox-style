@@ -4,28 +4,28 @@ Copyright 2016-present ol-mapbox-style contributors
 License: https://raw.githubusercontent.com/openlayers/ol-mapbox-style/master/LICENSE
 */
 
-import GeoJSON from 'ol/format/GeoJSON.js';
-import MVT from 'ol/format/MVT.js';
-import Map from 'ol/Map.js';
-import TileGrid from 'ol/tilegrid/TileGrid.js';
-import TileJSON from 'ol/source/TileJSON.js';
-import TileLayer from 'ol/layer/Tile.js';
-import VectorLayer from 'ol/layer/Vector.js';
-import VectorSource from 'ol/source/Vector.js';
-import VectorTileLayer from 'ol/layer/VectorTile.js';
-import VectorTileSource from 'ol/source/VectorTile.js';
-import View from 'ol/View.js';
+import GeoJSON from "ol/format/GeoJSON.js";
+import MVT from "ol/format/MVT.js";
+import Map from "ol/Map.js";
+import TileGrid from "ol/tilegrid/TileGrid.js";
+import TileJSON from "ol/source/TileJSON.js";
+import TileLayer from "ol/layer/WebGLTile.js";
+import VectorLayer from "ol/layer/Vector.js";
+import VectorSource from "ol/source/Vector.js";
+import VectorTileLayer from "ol/layer/VectorTile.js";
+import VectorTileSource from "ol/source/VectorTile.js";
+import View from "ol/View.js";
 import applyStyleFunction, {
   _colorWithOpacity,
   getValue,
-} from './stylefunction.js';
-import googleFonts from 'webfont-matcher/lib/fonts/google.js';
-import mb2css from 'mapbox-to-css-font';
-import {Color} from '@mapbox/mapbox-gl-style-spec';
-import {assign, defaultResolutions} from './util.js';
-import {createXYZ} from 'ol/tilegrid.js';
-import {fromLonLat} from 'ol/proj.js';
-import {unByKey} from 'ol/Observable.js';
+} from "./stylefunction.js";
+import googleFonts from "webfont-matcher/lib/fonts/google.js";
+import mb2css from "mapbox-to-css-font";
+import { Color } from "@mapbox/mapbox-gl-style-spec";
+import { assign, defaultResolutions } from "./util.js";
+import { createXYZ } from "ol/tilegrid.js";
+import { fromLonLat } from "ol/proj.js";
+import { unByKey } from "ol/Observable.js";
 
 /**
  * @typedef {import("ol/Map").default} PluggableMap
@@ -52,7 +52,7 @@ function hasFontFamily(family) {
             const cssRule = cssRules[j];
             if (cssRule.type == 5) {
               const match = cssRule.cssText.match(fontFamilyRegEx);
-              loadedFontFamilies[match[1].replace(stripQuotesRegEx, '')] = true;
+              loadedFontFamilies[match[1].replace(stripQuotesRegEx, "")] = true;
             }
           }
         }
@@ -78,22 +78,22 @@ function getFonts(fonts) {
     return fonts;
   }
   const googleFontDescriptions = fonts.map(function (font) {
-    const parts = mb2css(font, 1).split(' ');
-    return [parts.slice(3).join(' ').replace(/"/g, ''), parts[1] + parts[0]];
+    const parts = mb2css(font, 1).split(" ");
+    return [parts.slice(3).join(" ").replace(/"/g, ""), parts[1] + parts[0]];
   });
   for (let i = 0, ii = googleFontDescriptions.length; i < ii; ++i) {
     const googleFontDescription = googleFontDescriptions[i];
     const family = googleFontDescription[0];
     if (!hasFontFamily(family) && googleFamilies.indexOf(family) !== -1) {
       const fontUrl =
-        'https://fonts.googleapis.com/css?family=' +
-        family.replace(/ /g, '+') +
-        ':' +
+        "https://fonts.googleapis.com/css?family=" +
+        family.replace(/ /g, "+") +
+        ":" +
         googleFontDescription[1];
       if (!document.querySelector('link[href="' + fontUrl + '"]')) {
-        const markup = document.createElement('link');
+        const markup = document.createElement("link");
         markup.href = fontUrl;
-        markup.rel = 'stylesheet';
+        markup.rel = "stylesheet";
         document.head.appendChild(markup);
       }
     }
@@ -105,7 +105,7 @@ function getFonts(fonts) {
 const spriteRegEx = /^(.*)(\?.*)$/;
 
 function withPath(url, path) {
-  if (path && url.indexOf('.') === 0) {
+  if (path && url.indexOf(".") === 0) {
     url = path + url;
   }
   return url;
@@ -115,7 +115,7 @@ function toSpriteUrl(url, path, extension) {
   url = withPath(url, path);
   const parts = url.match(spriteRegEx);
   return parts
-    ? parts[1] + extension + (parts.length > 2 ? parts[2] : '')
+    ? parts[1] + extension + (parts.length > 2 ? parts[2] : "")
     : url + extension;
 }
 
@@ -156,15 +156,15 @@ export function applyStyle(layer, glStyle, source, path, resolutions) {
     // TODO: figure out where best place to check source type is
     // Note that the source arg is an array of gl layer ids and each must be
     // dereferenced to get source type to validate
-    if (typeof glStyle != 'object') {
+    if (typeof glStyle != "object") {
       glStyle = JSON.parse(glStyle);
     }
     if (glStyle.version != 8) {
-      return reject(new Error('glStyle version 8 required.'));
+      return reject(new Error("glStyle version 8 required."));
     }
     if (!(layer instanceof VectorLayer || layer instanceof VectorTileLayer)) {
       return reject(
-        new Error('Can only apply to VectorLayer or VectorTileLayer')
+        new Error("Can only apply to VectorLayer or VectorTileLayer")
       );
     }
 
@@ -189,20 +189,20 @@ export function applyStyle(layer, glStyle, source, path, resolutions) {
         layer.setStyle(style);
         resolve();
       } else {
-        reject(new Error('Something went wrong trying to apply style.'));
+        reject(new Error("Something went wrong trying to apply style."));
       }
     }
 
     if (glStyle.sprite) {
       spriteScale = window.devicePixelRatio >= 1.5 ? 0.5 : 1;
-      const sizeFactor = spriteScale == 0.5 ? '@2x' : '';
-      let spriteUrl = toSpriteUrl(glStyle.sprite, path, sizeFactor + '.json');
+      const sizeFactor = spriteScale == 0.5 ? "@2x" : "";
+      let spriteUrl = toSpriteUrl(glStyle.sprite, path, sizeFactor + ".json");
 
-      fetch(spriteUrl, {credentials: 'same-origin'})
+      fetch(spriteUrl, { credentials: "same-origin" })
         .then(function (response) {
-          if (!response.ok && sizeFactor !== '') {
-            spriteUrl = toSpriteUrl(glStyle.sprite, path, '.json');
-            return fetch(spriteUrl, {credentials: 'same-origin'});
+          if (!response.ok && sizeFactor !== "") {
+            spriteUrl = toSpriteUrl(glStyle.sprite, path, ".json");
+            return fetch(spriteUrl, { credentials: "same-origin" });
           } else {
             return response;
           }
@@ -220,13 +220,13 @@ export function applyStyle(layer, glStyle, source, path, resolutions) {
         })
         .then(function (spritesJson) {
           if (spritesJson === undefined) {
-            return reject(new Error('No sprites found.'));
+            return reject(new Error("No sprites found."));
           }
           spriteData = spritesJson;
           spriteImageUrl = toSpriteUrl(
             glStyle.sprite,
             path,
-            sizeFactor + '.png'
+            sizeFactor + ".png"
           );
           onChange();
         })
@@ -252,21 +252,21 @@ function setBackground(mapOrLayer, layer) {
   function updateStyle(resolution) {
     const layout = layer.layout || {};
     const paint = layer.paint || {};
-    background['paint'] = paint;
+    background["paint"] = paint;
     const zoom =
-      typeof mapOrLayer.getSource === 'function'
+      typeof mapOrLayer.getSource === "function"
         ? mapOrLayer.getSource().getTileGrid().getZForResolution(resolution)
         : mapOrLayer.getView().getZoom();
     const element =
-      typeof mapOrLayer.getTargetElement === 'function'
+      typeof mapOrLayer.getTargetElement === "function"
         ? mapOrLayer.getTargetElement()
         : undefined;
     let bg, opacity;
-    if (paint['background-color'] !== undefined) {
+    if (paint["background-color"] !== undefined) {
       bg = getValue(
         background,
-        'paint',
-        'background-color',
+        "paint",
+        "background-color",
         zoom,
         emptyObj,
         functionCache
@@ -275,11 +275,11 @@ function setBackground(mapOrLayer, layer) {
         element.style.background = Color.parse(bg).toString();
       }
     }
-    if (paint['background-opacity'] !== undefined) {
+    if (paint["background-opacity"] !== undefined) {
       opacity = getValue(
         background,
-        'paint',
-        'background-opacity',
+        "paint",
+        "background-opacity",
         zoom,
         emptyObj,
         functionCache
@@ -288,24 +288,24 @@ function setBackground(mapOrLayer, layer) {
         element.style.opacity = opacity;
       }
     }
-    if (layout.visibility == 'none') {
+    if (layout.visibility == "none") {
       if (element) {
-        element.style.backgroundColor = '';
-        element.style.opacity = '';
+        element.style.backgroundColor = "";
+        element.style.opacity = "";
       }
       return undefined;
     }
     return _colorWithOpacity(bg, opacity);
   }
-  if (typeof mapOrLayer.getTargetElement === 'function') {
+  if (typeof mapOrLayer.getTargetElement === "function") {
     if (mapOrLayer.getTargetElement()) {
       updateStyle();
     }
-    mapOrLayer.on(['change:resolution', 'change:target'], updateStyle);
-  } else if (typeof mapOrLayer.setBackground === 'function') {
+    mapOrLayer.on(["change:resolution", "change:target"], updateStyle);
+  } else if (typeof mapOrLayer.setBackground === "function") {
     mapOrLayer.setBackground(updateStyle);
   } else {
-    throw new Error('Unable to apply background.');
+    throw new Error("Unable to apply background.");
   }
 }
 
@@ -320,7 +320,7 @@ function setBackground(mapOrLayer, layer) {
  */
 export function applyBackground(mapOrLayer, glStyle) {
   glStyle.layers.some(function (l) {
-    if (l.type == 'background') {
+    if (l.type == "background") {
       setBackground(mapOrLayer, l);
       return true;
     }
@@ -367,9 +367,9 @@ export function setupVectorSource(glSource, url) {
     tilejsonCache[cacheKey] = tilejson;
   }
   return new Promise((resolve) => {
-    const key = tilejson.on('change', function () {
+    const key = tilejson.on("change", function () {
       const state = tilejson.getState();
-      if (state === 'ready') {
+      if (state === "ready") {
         const tileJSONDoc = tilejson.getTileJSON();
         const tiles = Array.isArray(tileJSONDoc.tiles)
           ? tileJSONDoc.tiles
@@ -383,7 +383,7 @@ export function setupVectorSource(glSource, url) {
         const extent = extentFromTileJSON(tileJSONDoc);
         const minZoom = tileJSONDoc.minzoom || 0;
         const maxZoom = tileJSONDoc.maxzoom || 22;
-        let source = tilejson.get('ol-source');
+        let source = tilejson.get("ol-source");
         if (source === undefined) {
           source = new VectorTileSource({
             attributions: tilejson.getAttributions(),
@@ -397,17 +397,17 @@ export function setupVectorSource(glSource, url) {
             }),
             urls: tiles,
           });
-          tilejson.set('ol-source', source);
+          tilejson.set("ol-source", source);
         }
         unByKey(key);
         resolve(source);
-      } else if (state === 'error') {
-        tilejson.set('ol-source', null);
+      } else if (state === "error") {
+        tilejson.set("ol-source", null);
         unByKey(key);
         resolve(undefined);
       }
     });
-    if (tilejson.getState() === 'ready') {
+    if (tilejson.getState() === "ready") {
       tilejson.changed();
     }
   });
@@ -425,16 +425,16 @@ function setupVectorLayer(glSource, url) {
 }
 
 function setupRasterLayer(glSource, url) {
-  const layer = new TileLayer();
+  const layer = new TileLayer({ cacheSize: 128 });
   const source = new TileJSON({
     transition: 0,
     url: glSource.tiles ? undefined : url,
     tileJSON: glSource.tiles ? glSource : undefined,
-    crossOrigin: 'anonymous',
+    crossOrigin: "anonymous",
   });
-  const key = source.on('change', function () {
+  const key = source.on("change", function () {
     const state = source.getState();
-    if (state === 'ready') {
+    if (state === "ready") {
       unByKey(key);
       const tileJSONDoc = /** @type {Object} */ (source.getTileJSON());
       const extent = extentFromTileJSON(tileJSONDoc);
@@ -455,15 +455,15 @@ function setupRasterLayer(glSource, url) {
         tileSize: tileSize,
       });
       layer.setSource(source);
-    } else if (state === 'error') {
+    } else if (state === "error") {
       unByKey(key);
       layer.setSource(undefined);
     }
   });
   source.setTileLoadFunction(function (tile, src) {
-    if (src.indexOf('{bbox-epsg-3857}') != -1) {
+    if (src.indexOf("{bbox-epsg-3857}") != -1) {
       const bbox = source.getTileGrid().getTileCoordExtent(tile.getTileCoord());
-      src = src.replace('{bbox-epsg-3857}', bbox.toString());
+      src = src.replace("{bbox-epsg-3857}", bbox.toString());
     }
     const img = /** @type {import("ol/ImageTile").default} */ (tile).getImage();
     /** @type {HTMLImageElement} */ (img).src = src;
@@ -475,11 +475,11 @@ const geoJsonFormat = new GeoJSON();
 function setupGeoJSONLayer(glSource, path) {
   const data = glSource.data;
   let features, geoJsonUrl;
-  if (typeof data == 'string') {
+  if (typeof data == "string") {
     geoJsonUrl = withPath(data, path);
   } else {
     features = geoJsonFormat.readFeatures(data, {
-      featureProjection: 'EPSG:3857',
+      featureProjection: "EPSG:3857",
     });
   }
   return new VectorLayer({
@@ -497,8 +497,8 @@ function updateRasterLayerProperties(glLayer, layer, view, functionCache) {
   const zoom = view.getZoom();
   const opacity = getValue(
     glLayer,
-    'paint',
-    'raster-opacity',
+    "paint",
+    "raster-opacity",
     zoom,
     emptyObj,
     functionCache
@@ -506,7 +506,7 @@ function updateRasterLayerProperties(glLayer, layer, view, functionCache) {
   layer.setOpacity(opacity);
 }
 
-function processStyle(glStyle, map, baseUrl, host, path, accessToken = '') {
+function processStyle(glStyle, map, baseUrl, host, path, accessToken = "") {
   const promises = [];
   let view = map.getView();
   if (!view.isDef() && !view.getRotation() && !view.getResolutions()) {
@@ -518,10 +518,10 @@ function processStyle(glStyle, map, baseUrl, host, path, accessToken = '') {
     map.setView(view);
   }
 
-  if ('center' in glStyle && !view.getCenter()) {
+  if ("center" in glStyle && !view.getCenter()) {
     view.setCenter(fromLonLat(glStyle.center));
   }
-  if ('zoom' in glStyle && view.getZoom() === undefined) {
+  if ("zoom" in glStyle && view.getZoom() === undefined) {
     view.setResolution(defaultResolutions[0] / Math.pow(2, glStyle.zoom));
   }
   if (!view.getCenter() || view.getZoom() === undefined) {
@@ -531,10 +531,10 @@ function processStyle(glStyle, map, baseUrl, host, path, accessToken = '') {
     });
   }
   if (glStyle.sprite) {
-    if (glStyle.sprite.indexOf('mapbox://') == 0) {
-      glStyle.sprite = baseUrl + '/sprite' + accessToken;
-    } else if (glStyle.sprite.indexOf('http') != 0) {
-      glStyle.sprite = (host ? host + path : '') + glStyle.sprite + accessToken;
+    if (glStyle.sprite.indexOf("mapbox://") == 0) {
+      glStyle.sprite = baseUrl + "/sprite" + accessToken;
+    } else if (glStyle.sprite.indexOf("http") != 0) {
+      glStyle.sprite = (host ? host + path : "") + glStyle.sprite + accessToken;
     }
   }
 
@@ -545,9 +545,9 @@ function processStyle(glStyle, map, baseUrl, host, path, accessToken = '') {
   for (let i = 0, ii = glLayers.length; i < ii; ++i) {
     glLayer = glLayers[i];
     const type = glLayer.type;
-    if (type == 'heatmap' || type == 'hillshade') {
+    if (type == "heatmap" || type == "hillshade") {
       //FIXME Unsupported layer type
-    } else if (type == 'background') {
+    } else if (type == "background") {
       setBackground(map, glLayer);
     } else {
       id = glLayer.source || getSourceIdByRef(glLayers, glLayer.ref);
@@ -561,20 +561,20 @@ function processStyle(glStyle, map, baseUrl, host, path, accessToken = '') {
         url = glSource.url;
         if (url) {
           url = withPath(url, path);
-          if (url.indexOf('mapbox://') == 0) {
-            const mapid = url.replace('mapbox://', '');
-            glSource.tiles = ['a', 'b', 'c', 'd'].map(function (host) {
+          if (url.indexOf("mapbox://") == 0) {
+            const mapid = url.replace("mapbox://", "");
+            glSource.tiles = ["a", "b", "c", "d"].map(function (host) {
               return (
-                'https://' +
+                "https://" +
                 host +
-                '.tiles.mapbox.com/v4/' +
+                ".tiles.mapbox.com/v4/" +
                 mapid +
-                '/{z}/{x}/{y}.' +
-                (glSource.type == 'vector' ? 'vector.pbf' : 'png') +
+                "/{z}/{x}/{y}." +
+                (glSource.type == "vector" ? "vector.pbf" : "png") +
                 accessToken
               );
             });
-          } else if (url.indexOf('/') === 0 && host.indexOf('http') === 0) {
+          } else if (url.indexOf("/") === 0 && host.indexOf("http") === 0) {
             url = host + url;
           }
         }
@@ -582,16 +582,16 @@ function processStyle(glStyle, map, baseUrl, host, path, accessToken = '') {
           glSource.tiles = glSource.tiles.map((url) => withPath(url, path));
         }
 
-        if (glSource.type == 'vector') {
+        if (glSource.type == "vector") {
           layer = setupVectorLayer(glSource, url);
-        } else if (glSource.type == 'raster') {
+        } else if (glSource.type == "raster") {
           layer = setupRasterLayer(glSource, url);
           layer.setVisible(
-            glLayer.layout ? glLayer.layout.visibility !== 'none' : true
+            glLayer.layout ? glLayer.layout.visibility !== "none" : true
           );
           const functionCache = {};
           view.on(
-            'change:resolution',
+            "change:resolution",
             updateRasterLayerProperties.bind(
               this,
               glLayer,
@@ -601,19 +601,19 @@ function processStyle(glStyle, map, baseUrl, host, path, accessToken = '') {
             )
           );
           updateRasterLayerProperties(glLayer, layer, view, functionCache);
-        } else if (glSource.type == 'geojson') {
+        } else if (glSource.type == "geojson") {
           layer = setupGeoJSONLayer(glSource, path);
         }
         glSourceId = id;
         if (layer) {
-          layer.set('mapbox-source', glSourceId);
+          layer.set("mapbox-source", glSourceId);
         }
       }
       layerIds.push(glLayer.id);
     }
   }
   promises.push(finalizeLayer(layer, layerIds, glStyle, path, map));
-  map.set('mapbox-style', glStyle);
+  map.set("mapbox-style", glStyle);
   return Promise.all(promises);
 }
 
@@ -662,37 +662,37 @@ function processStyle(glStyle, map, baseUrl, host, path, accessToken = '') {
  */
 export default function olms(map, style) {
   let promise,
-    accessToken = '',
-    baseUrl = '',
-    host = '',
-    path = '';
+    accessToken = "",
+    baseUrl = "",
+    host = "",
+    path = "";
 
-  if (typeof map === 'string' || map instanceof HTMLElement) {
+  if (typeof map === "string" || map instanceof HTMLElement) {
     map = new Map({
       target: map,
     });
   }
 
-  if (typeof style === 'string') {
+  if (typeof style === "string") {
     const parts = style.match(spriteRegEx);
     if (parts) {
       baseUrl = parts[1];
-      accessToken = parts.length > 2 ? parts[2] : '';
+      accessToken = parts.length > 2 ? parts[2] : "";
     }
     promise = new Promise(function (resolve, reject) {
       fetch(style, {
-        credentials: 'same-origin',
+        credentials: "same-origin",
       })
         .then(function (response) {
           return response.json();
         })
         .then(function (glStyle) {
           const a = /** @type {HTMLAnchorElement} */ (
-            document.createElement('A')
+            document.createElement("A")
           );
           a.href = style;
           const href = a.href;
-          path = a.pathname.split('/').slice(0, -1).join('/') + '/';
+          path = a.pathname.split("/").slice(0, -1).join("/") + "/";
           host = href.substr(0, href.indexOf(path));
 
           processStyle(glStyle, map, baseUrl, host, path, accessToken)
@@ -740,7 +740,7 @@ export default function olms(map, style) {
  * contents described in the Mapbox Style object.
  */
 export function apply(map, style) {
-  if (typeof map === 'string' || map instanceof HTMLElement) {
+  if (typeof map === "string" || map instanceof HTMLElement) {
     map = new Map({
       target: map,
     });
@@ -775,22 +775,22 @@ function finalizeLayer(layer, layerIds, glStyle, path, map) {
   for (let i = 0, ii = glLayers.length; i < ii; ++i) {
     const glLayer = glLayers[i];
     if (layerIds.indexOf(glLayer.id) !== -1) {
-      minZoom = Math.min('minzoom' in glLayer ? glLayer.minzoom : 0, minZoom);
-      maxZoom = Math.max('maxzoom' in glLayer ? glLayer.maxzoom : 24, maxZoom);
+      minZoom = Math.min("minzoom" in glLayer ? glLayer.minzoom : 0, minZoom);
+      maxZoom = Math.max("maxzoom" in glLayer ? glLayer.maxzoom : 24, maxZoom);
     }
   }
   return new Promise(function (resolve, reject) {
     const setStyle = function () {
       const source = layer.getSource();
-      if (!source || source.getState() === 'error') {
+      if (!source || source.getState() === "error") {
         reject(
           new Error(
-            'Error accessing data for source ' + layer.get('mapbox-source')
+            "Error accessing data for source " + layer.get("mapbox-source")
           )
         );
         return;
       }
-      if ('getTileGrid' in source) {
+      if ("getTileGrid" in source) {
         const tileGrid =
           /** @type {import("ol/source/Tile.js").default|import("ol/source/VectorTile.js").default} */ (
             source
@@ -835,7 +835,7 @@ function finalizeLayer(layer, layerIds, glStyle, path, map) {
       }
     };
 
-    layer.set('mapbox-layers', layerIds);
+    layer.set("mapbox-layers", layerIds);
     if (map.getLayers().getArray().indexOf(layer) === -1) {
       map.addLayer(layer);
     }
@@ -843,7 +843,7 @@ function finalizeLayer(layer, layerIds, glStyle, path, map) {
     if (layer.getSource()) {
       setStyle();
     } else {
-      layer.once('change:source', setStyle);
+      layer.once("change:source", setStyle);
     }
   });
 }
@@ -862,7 +862,7 @@ function finalizeLayer(layer, layerIds, glStyle, path, map) {
 export function getLayer(map, layerId) {
   const layers = map.getLayers().getArray();
   for (let i = 0, ii = layers.length; i < ii; ++i) {
-    const mapboxLayers = layers[i].get('mapbox-layers');
+    const mapboxLayers = layers[i].get("mapbox-layers");
     if (mapboxLayers && mapboxLayers.indexOf(layerId) !== -1) {
       return /** @type {Layer} */ (layers[i]);
     }
@@ -882,7 +882,7 @@ export function getLayers(map, sourceId) {
   const result = [];
   const layers = map.getLayers().getArray();
   for (let i = 0, ii = layers.length; i < ii; ++i) {
-    if (layers[i].get('mapbox-source') === sourceId) {
+    if (layers[i].get("mapbox-source") === sourceId) {
       result.push(/** @type {Layer} */ (layers[i]));
     }
   }
@@ -902,10 +902,10 @@ export function getSource(map, sourceId) {
   const layers = map.getLayers().getArray();
   for (let i = 0, ii = layers.length; i < ii; ++i) {
     const source = /** @type {Layer} */ (layers[i]).getSource();
-    if (layers[i].get('mapbox-source') === sourceId) {
+    if (layers[i].get("mapbox-source") === sourceId) {
       return source;
     }
   }
 }
 
-export {finalizeLayer as _finalizeLayer, getFonts as _getFonts};
+export { finalizeLayer as _finalizeLayer, getFonts as _getFonts };
